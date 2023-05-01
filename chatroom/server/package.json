@@ -1,0 +1,17 @@
+{
+  "dependencies": {
+    "nodemon": "^2.0.22",
+    "socket.io": "^4.6.1"
+  },
+  "scripts": {
+    "start": "nodemon server.js"
+  },
+  "name": "server",
+  "version": "1.0.0",
+  "main": "server.js",
+  "devDependencies": {},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}

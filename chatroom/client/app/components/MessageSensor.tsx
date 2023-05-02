@@ -121,7 +121,9 @@ export default function DashAccordion({
           <DashCard color="#ffdec4">
             <Grid container>
               <Grid item xs={12} sx={{ pt: 1, pb: 1 }}>
-                <Typography variant="subtitle2">Message: {message}</Typography>
+                <Typography variant="subtitle2">
+                  <b>Message:</b> {message}
+                </Typography>
               </Grid>
               <Grid container alignItems={"center"}>
                 <Grid item xs={8}>

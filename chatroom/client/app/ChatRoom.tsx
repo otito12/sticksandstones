@@ -12,16 +12,9 @@ import {
   Paper,
 } from "@mui/material";
 import { useState } from "react";
-import Message from "./components/Message";
 import { DefaultEventsMap } from "@socket.io/component-emitter";
-
-type Message = {
-  from: string;
-  to: string;
-  sent: number;
-  message: string;
-  flagged: boolean;
-};
+import { Message } from "../typings";
+import MessageCard from "./components/MessageCard";
 
 export default function ChatRoom() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -96,7 +89,8 @@ export default function ChatRoom() {
               >
                 {messages.length > 0 &&
                   messages.map((message) => (
-                    <Message
+                    <MessageCard
+                      messageObj={message}
                       message={message.message}
                       sent={message.from === socket!.id}
                       flagged={message.flagged}

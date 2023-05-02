@@ -1,6 +1,7 @@
 from confluent_kafka import Consumer, Producer
 import json
 import numpy as np
+import pickle
 
 kafka_config={
     "bootstrap.servers": "pkc-lzvrd.us-west4.gcp.confluent.cloud:9092",
@@ -16,6 +17,10 @@ kafka_config.pop("group.id")
 p = Producer(kafka_config)
 
 c.subscribe(['mediate-queue'])
+clf = pickle.load(open('model.pkl','rb'))
+count_vect = pickle.load(open('count_vect.pkl','rb'))
+def model_pedict(text):
+  return clf.predict(count_vect.transform([text]))[0]
 
 if __name__ == '__main__':
     try:
@@ -35,7 +40,7 @@ if __name__ == '__main__':
                 print("Consumed event from topic {}: value = {}".format(
                     msg.topic(), msg.value()))
                 message_obj = json.loads(msg.value())
-                if (np.random.randint(0,2)):
+                if (model_pedict(message_obj["message"])):
                     message_obj.update({"flagged":True})
                     p.produce("flagged-queue", value=json.dumps(message_obj))
                     print("Message Flagged")

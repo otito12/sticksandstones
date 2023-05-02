@@ -64,7 +64,10 @@ export default function DashCard({
                 <Grid container justifyContent={"start"} alignContent={"end"}>
                   <Typography
                     variant="body1"
-                    sx={{ color: `${theme.palette.text.primary}` }}
+                    sx={{
+                      color: `${theme.palette.text.primary}`,
+                      fontWeight: "bold",
+                    }}
                   >
                     {title}
                   </Typography>

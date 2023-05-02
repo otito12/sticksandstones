@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { Socket, io } from "socket.io-client";
 import DashCard from "./components/DashCard";
 import SendIcon from "@mui/icons-material/Send";
@@ -42,19 +42,31 @@ export default function ChatRoom() {
     setMessages([...messages, message]);
   });
 
+  const messagesEndRef = useRef<null | HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
   const handleMessageSend = (event: any) => {
     event.preventDefault();
+    if (current_message.length > 0) {
+      let message: Message = {
+        from: socket!.id,
+        to: "*",
+        sent: Date.now(),
+        message: current_message,
+        flagged: false,
+      };
+      setMessages([...messages, message]);
 
-    let message: Message = {
-      from: socket!.id,
-      to: "*",
-      sent: Date.now(),
-      message: current_message,
-      flagged: false,
-    };
-    setMessages([...messages, message]);
-    socket!.emit("send-message", message);
-    set_current_message("");
+      socket!.emit("send-message", message);
+      set_current_message("");
+    }
   };
 
   const onChangeMessage = (event: any) => {
@@ -87,8 +99,10 @@ export default function ChatRoom() {
                     <Message
                       message={message.message}
                       sent={message.from === socket!.id}
+                      flagged={message.flagged}
                     />
                   ))}
+                <div ref={messagesEndRef} />
               </Paper>
             </Grid>
             {/* Message Form Container */}

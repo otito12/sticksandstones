@@ -11,7 +11,6 @@ from botocore.client import Config
 from io import BytesIO
 import time
 import sys
-from flask_socketio import SocketIO, disconnect, emit,send
 
 class FheClient():
     aws_config={
@@ -35,9 +34,7 @@ class FheClient():
     ]
     path = os.getcwd()+'/fhe_client/client'
 
-    def __init__(self,app,socket,mediator_server_url="http://127.0.0.1:5050"):
-        self.app=app
-        self.socket=socket
+    def __init__(self,mediator_server_url="http://127.0.0.1:5050"):
         self.count_vector=None
         self.fhemodel_client=None
         self.mediator_server_url = mediator_server_url
@@ -53,9 +50,9 @@ class FheClient():
             aws_secret_access_key=self.aws_config["aws_secret"],
             config=Config(signature_version='s3v4')
         )
-        # kafka_consumer_thread = threading.Thread(target=self._listen_kafka_consumer)
-        # kafka_consumer_thread.daemon = True         # Daemonize thread
-        # kafka_consumer_thread.start()
+        kafka_consumer_thread = threading.Thread(target=self._listen_kafka_consumer)
+        kafka_consumer_thread.daemon = True         # Daemonize thread
+        kafka_consumer_thread.start()
         
     def _get_client_count(self):
         # get client.zip
@@ -84,43 +81,42 @@ class FheClient():
         else:
             print("The file does not exist")
     
-    # def _listen_kafka_consumer(self):
-    #     with self.app.test_request_context('/'):
-    #         self._kafka_consumer.subscribe(['encrypted-pred-queue'])
-    #         print("Listening")
-    #         try:
-    #             while True:
-    #                 msg = self._kafka_consumer.poll(1.0)
-    #                 if msg is None:
-    #                     continue
-    #                 elif msg.error():
-    #                     print("ERROR: %s".format(msg.error()))
-    #                 else:
-    #                     # Extract the (optional) key and value, and print.
-    #                     print("EVENT ARRIVED From Kafka Consumer")
-    #                     print("Consumed event from topic {}: value = {}".format(
-    #                         msg.topic(), msg.value()))
-                        
-    #                     message_id = msg.value().decode("utf-8")
-    #                     # when message arrives go to AWS to get pred file
-    #                     encrypted_prediciton = self.aws_s3.get_object(Bucket=self.aws_config['aws_bucket'],
-    #                                                                 Key=message_id)['Body'].read()
+    def _listen_kafka_consumer(self):
+        self._kafka_consumer.subscribe(['encrypted-pred-queue'])
+        print("Listening")
+        try:
+            while True:
+                msg = self._kafka_consumer.poll(1.0)
+                if msg is None:
+                    continue
+                elif msg.error():
+                    print("ERROR: %s".format(msg.error()))
+                else:
+                    # Extract the (optional) key and value, and print.
+                    print("EVENT ARRIVED From Kafka Consumer")
+                    print("Consumed event from topic {}: value = {}".format(
+                        msg.topic(), msg.value()))
+                    
+                    message_id = msg.value().decode("utf-8")
+                    # when message arrives go to AWS to get pred file
+                    encrypted_prediciton = self.aws_s3.get_object(Bucket=self.aws_config['aws_bucket'],
+                                                                Key=message_id)['Body'].read()
 
-    #                     # decyrpt
-    #                     decrypted_prediction = self.fhemodel_client.deserialize_decrypt_dequantize(encrypted_prediciton)[0]
-    #                     message = self.active_messages.pop(message_id)
-    #                     if (np.argmax(decrypted_prediction)):
-    #                         message["flagged"]=True
-    #                     print(message)
+                    # decyrpt
+                    decrypted_prediction = self.fhemodel_client.deserialize_decrypt_dequantize(encrypted_prediciton)[0]
+                    message = self.active_messages.pop(message_id)
+                    if (np.argmax(decrypted_prediction)):
+                        message["flagged"]=True
+                    print(message)
 
-    #                     # the final fucking mini boss
-    #                     self.socket.emit('recieve-message', message,include_self=False)
+                    # the final fucking mini boss
+                    # socket.send('recieve-message', message)
 
-    #         except KeyboardInterrupt:
-    #             pass
-    #         finally:
-    #             # Leave group and commit final offsets
-    #             self._kafka_consumer.close()
+        except KeyboardInterrupt:
+            pass
+        finally:
+            # Leave group and commit final offsets
+            self._kafka_consumer.close()
 
     def intecept(self,message):
         
@@ -137,7 +133,7 @@ class FheClient():
         self.active_messages[message['id']+":pred"] = message
         t1 = time.time()
         print("...Done thinking")
-        print(self.active_messages)
+        print("The currently Active Messages: ",self.active_messages)
         print(url)
         print("Encryption, AWS and Kafka Producton time:",t1-t0)
         print("Size of Encreypted text: ",sys.getsizeof(encrypted_input))

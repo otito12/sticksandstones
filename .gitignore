@@ -1,9 +1,14 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 /mediator/lib/
 /*/node_modules/
+/chatroom/server/lib/
+/chatroom/server/bin/
 /chatroom/client/node_modules/
+
 /chatroom/client/.next/
 /chatroom/server/node_modules/
+/chatroom/server/fhe_client/client
+/chatroom/server/12899953925275038130
 # dependencies
 /node_modules
 /.pnp

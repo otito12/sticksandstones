@@ -25,7 +25,8 @@ export default function ChatRoom() {
     useState<Socket<DefaultEventsMap, DefaultEventsMap>>();
 
   useEffect(() => {
-    setSocket(io("http://localhost:3500"));
+    // setSocket(io("http://localhost:3500"));
+    setSocket(io("http://127.0.0.1:5001"));
   }, []);
 
   socket?.on("connect", () => {
@@ -57,7 +58,6 @@ export default function ChatRoom() {
         flagged: false,
       };
       setMessages([...messages, message]);
-
       socket!.emit("send-message", message);
       set_current_message("");
     }
@@ -73,6 +73,7 @@ export default function ChatRoom() {
     <Grid container sx={{ height: "95vh" }} alignItems={"flex-start"}>
       <DashCard title={`Welcome to Sticks & Stones Chatroom`}>
         {!loading && (
+          //
           <>
             {/* Message Display Container */}
             <Grid container sx={{ mt: 1, mb: 1 }}>

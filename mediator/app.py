@@ -3,7 +3,7 @@ import json
 import numpy as np
 import pickle
 import shutil
-from flask import Flask, jsonify, request, flash, request, redirect, url_for
+from flask import Flask, jsonify, request, flash, request, redirect, url_for, send_file
 from flask_cors import CORS
 import requests
 from concrete.ml.deployment import FHEModelClient, FHEModelDev, FHEModelServer
@@ -51,9 +51,13 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-@app.route("/initialize", methods=["POST"])
-def key_to_server():
-    pass
+@app.route("/initialize", methods=["GET"])
+def initalize():
+    return send_file("client.zip")
+
+@app.route("/count_vector", methods=["GET"])
+def count_vector():
+    return send_file("cml_cv.pkl")
 
 @app.route("/keytoserver", methods=["POST"])
 def key_to_server():

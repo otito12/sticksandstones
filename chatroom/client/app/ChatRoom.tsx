@@ -16,6 +16,7 @@ import { useState } from "react";
 import { DefaultEventsMap } from "@socket.io/component-emitter";
 import { Message } from "../typings";
 import MessageCard from "./components/MessageCard";
+import { v4 as uuidv4 } from "uuid";
 
 export default function ChatRoom() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -25,8 +26,8 @@ export default function ChatRoom() {
     useState<Socket<DefaultEventsMap, DefaultEventsMap>>();
 
   useEffect(() => {
-    setSocket(io("http://localhost:3500"));
-    // setSocket(io("http://127.0.0.1:5001"));
+    // setSocket(io("http://localhost:3500"));
+    setSocket(io("http://127.0.0.1:5001"));
   }, []);
 
   socket?.on("connect", () => {
@@ -51,6 +52,7 @@ export default function ChatRoom() {
     event.preventDefault();
     if (current_message.length > 0) {
       let message: Message = {
+        id: uuidv4(),
         from: socket!.id,
         to: "*",
         sent: Date.now(),

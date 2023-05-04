@@ -1,4 +1,3 @@
-import json
 import shutil
 import requests
 import os
@@ -7,9 +6,19 @@ import numpy as np
 import pickle
 from confluent_kafka import Consumer, Producer
 import threading
+import boto3
+from botocore.client import Config
+from io import BytesIO
+import time
 import sys
+from flask_socketio import SocketIO, disconnect, emit,send
 
 class FheClient():
+    aws_config={
+        "aws_key": 'AKIA5WXDWS4P7KLXQUUD',
+        "aws_secret": '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',
+        "aws_bucket": 'sticksnstones',
+    }
     kafka_config={
         "bootstrap.servers": "pkc-lzvrd.us-west4.gcp.confluent.cloud:9092",
         "security.protocol": "sasl_ssl",
@@ -26,7 +35,9 @@ class FheClient():
     ]
     path = os.getcwd()+'/fhe_client/client'
 
-    def __init__(self,mediator_server_url="http://127.0.0.1:5050"):
+    def __init__(self,app,socket,mediator_server_url="http://127.0.0.1:5050"):
+        self.app=app
+        self.socket=socket
         self.count_vector=None
         self.fhemodel_client=None
         self.mediator_server_url = mediator_server_url
@@ -35,7 +46,16 @@ class FheClient():
         temp = self.kafka_config.pop("group.id")
         self._kafka_poducer = Producer(self.kafka_config)
         self.kafka_config["group.id"]=temp
-        # self.run()
+        self.active_messages={}
+        self.aws_s3 = boto3.client(
+            's3',
+            aws_access_key_id=self.aws_config["aws_key"],
+            aws_secret_access_key=self.aws_config["aws_secret"],
+            config=Config(signature_version='s3v4')
+        )
+        # kafka_consumer_thread = threading.Thread(target=self._listen_kafka_consumer)
+        # kafka_consumer_thread.daemon = True         # Daemonize thread
+        # kafka_consumer_thread.start()
         
     def _get_client_count(self):
         # get client.zip
@@ -64,39 +84,64 @@ class FheClient():
         else:
             print("The file does not exist")
     
-    def _listen_kafka_consumer(self):
-        self._kafka_consumer.subscribe(['flagged-queue','clean-queue'])
-        print("Listening")
-        try:
-            while True:
-                msg = self._kafka_consumer.poll(1.0)
-                if msg is None:
-                    continue
-                elif msg.error():
-                    print("ERROR: %s".format(msg.error()))
-                else:
-                    # Extract the (optional) key and value, and print.
-                    print("EVENT ARRIVED")
-                    print("Consumed event from topic {}: value = {}".format(
-                        msg.topic(), msg.value()))
-        except KeyboardInterrupt:
-            pass
-        finally:
-            # Leave group and commit final offsets
-            self._kafka_consumer.close()
+    # def _listen_kafka_consumer(self):
+    #     with self.app.test_request_context('/'):
+    #         self._kafka_consumer.subscribe(['encrypted-pred-queue'])
+    #         print("Listening")
+    #         try:
+    #             while True:
+    #                 msg = self._kafka_consumer.poll(1.0)
+    #                 if msg is None:
+    #                     continue
+    #                 elif msg.error():
+    #                     print("ERROR: %s".format(msg.error()))
+    #                 else:
+    #                     # Extract the (optional) key and value, and print.
+    #                     print("EVENT ARRIVED From Kafka Consumer")
+    #                     print("Consumed event from topic {}: value = {}".format(
+    #                         msg.topic(), msg.value()))
+                        
+    #                     message_id = msg.value().decode("utf-8")
+    #                     # when message arrives go to AWS to get pred file
+    #                     encrypted_prediciton = self.aws_s3.get_object(Bucket=self.aws_config['aws_bucket'],
+    #                                                                 Key=message_id)['Body'].read()
+
+    #                     # decyrpt
+    #                     decrypted_prediction = self.fhemodel_client.deserialize_decrypt_dequantize(encrypted_prediciton)[0]
+    #                     message = self.active_messages.pop(message_id)
+    #                     if (np.argmax(decrypted_prediction)):
+    #                         message["flagged"]=True
+    #                     print(message)
+
+    #                     # the final fucking mini boss
+    #                     self.socket.emit('recieve-message', message,include_self=False)
+
+    #         except KeyboardInterrupt:
+    #             pass
+    #         finally:
+    #             # Leave group and commit final offsets
+    #             self._kafka_consumer.close()
 
     def intecept(self,message):
-        print("intercepted",message)
-        # self._kafka_poducer.produce("mediate-queue", value=json.dumps(message))
-        print(message["message"])
+        
+        for bucket in self.aws_s3.list_buckets()['Buckets']:
+            print(bucket['Name'])
+        print("intercepted: ",message)
+        t0 = time.time()
+        print("Let me think...")
         clear_input = np.array(self.count_vector.transform([message["message"]]).todense())
         encrypted_input = self.fhemodel_client.quantize_encrypt_serialize(clear_input)
-        print(sys.getsizeof(encrypted_input))
-        # self._kafka_poducer.produce("encrypted-queue", value=encrypted_input)
-        # decrypted_prediction = self.fhemodel_client.deserialize_decrypt_dequantize(
-        #     x.content)[0]
-
-        # print(self.bully_index[np.argmax(decrypted_prediction)])
+        self.aws_s3.upload_fileobj(BytesIO(encrypted_input), self.aws_config["aws_bucket"], message['id'])
+        url = "https://sticksnstones.s3.amazonaws.com/" + message['id']
+        self._kafka_poducer.produce("encrypted-queue", value=message['id'])
+        self.active_messages[message['id']+":pred"] = message
+        t1 = time.time()
+        print("...Done thinking")
+        print(self.active_messages)
+        print(url)
+        print("Encryption, AWS and Kafka Producton time:",t1-t0)
+        print("Size of Encreypted text: ",sys.getsizeof(encrypted_input))
+        
 
     def restful_predict(self,message):
         clear_input = np.array(self.count_vector.transform([message]).todense())
@@ -110,10 +155,7 @@ class FheClient():
 
         print(self.bully_index[np.argmax(decrypted_prediction)])
 
-    def run(self):
-        kafka_consumer_thread = threading.Thread(target=self._listen_kafka_consumer)
-        kafka_consumer_thread.start()
-        kafka_consumer_thread.join()
+        
 
 
     

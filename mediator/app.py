@@ -3,7 +3,7 @@ import json
 import numpy as np
 import pickle
 import shutil
-from flask import Flask, jsonify, request, flash, request, redirect, url_for, send_file
+from flask import Flask, jsonify, request, flash, request, send_file
 from flask_cors import CORS
 import requests
 from concrete.ml.deployment import FHEModelClient, FHEModelDev, FHEModelServer
@@ -12,6 +12,15 @@ import os
 import platform
 import time
 import threading
+import boto3
+from botocore.client import Config
+from io import BytesIO
+
+aws_config={
+    "aws_key": 'AKIA5WXDWS4P7KLXQUUD',
+    "aws_secret": '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',
+    "aws_bucket": 'sticksnstones',
+}
 
 kafka_config={
     "bootstrap.servers": "pkc-lzvrd.us-west4.gcp.confluent.cloud:9092",
@@ -23,6 +32,15 @@ kafka_config={
     "sasl.username": "4UWMU4B6UGYYOIRH",
     "sasl.password": "r9tsYZipOZ6r8GFM78GtrW2cg4ybXTsGeeD0auDbh6Dp3YZxGY2CvlMZMIkiWar+",
 }
+
+# AWS client
+s3 = boto3.client(
+    's3',
+    aws_access_key_id=aws_config["aws_key"],
+    aws_secret_access_key=aws_config["aws_secret"],
+    config=Config(signature_version='s3v4')
+)
+
 # Parse the command line.
 c = Consumer(kafka_config)
 kafka_config.pop("group.id")
@@ -107,14 +125,36 @@ def _listen():
                 if(msg.topic() == "encrypted-queue"):
                     print("Consumed encrypted event from topic {}: value = {}".format(
                     msg.topic(), msg.value()))
-                    continue
-                    # with open(server_dir + "/serialized_keys.ekl", "rb") as f:
-                    #     serialized_evaluation_keys = f.read()
-                    # encrypted_prediction = FHEModelServer(os.getcwd()).run(
-                    #     file, serialized_evaluation_keys
-                    # )
-                    # return encrypted_prediction
-                    # p.produce("encrypted-pred-queue", value=json.dumps(message_obj))
+                    
+                    message_id = msg.value().decode("utf-8")
+                    aws_file_key = message_id + ":pred"
+                    print("I AM THE MESSAGE ID FROM KAFKA:", message_id)
+
+                    t0 = time.time()
+                    print("Let me think...")
+                    # download file from aws link
+                    encrypted_input = s3.get_object(Bucket=aws_config['aws_bucket'],Key=message_id)['Body'].read()
+
+                    # peform prediction
+                    with open(server_dir + "/serialized_keys.ekl", "rb") as f:
+                        serialized_evaluation_keys = f.read()
+                    encrypted_prediction = FHEModelServer(os.getcwd()).run(
+                        encrypted_input, serialized_evaluation_keys
+                    )
+                    
+                    # upload prediction result to aws
+                    s3.upload_fileobj(BytesIO(encrypted_prediction), aws_config["aws_bucket"], aws_file_key)
+                    
+                    # publish link to encypted stream 
+                    p.produce("encrypted-pred-queue", value=aws_file_key)
+
+                    # delete 240MB!!!! encrypted message
+                    s3.delete_object(Bucket=aws_config["aws_bucket"], Key=message_id)
+                    t1 = time.time()
+                    print("...Done thinking")
+                    print(aws_file_key)
+                    print("Prediction, AWS and Kafka Producton time:",t1-t0)
+                    
                 else:
                     print("Consumed event from topic {}: value = {}".format(
                     msg.topic(), msg.value()))

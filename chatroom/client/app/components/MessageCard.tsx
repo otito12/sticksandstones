@@ -19,7 +19,7 @@ export default function MessageCard({
   return (
     <Grid container alignItems={"end"}>
       {sent && <Grid item sx={{ flex: "1 1 auto" }}></Grid>}
-      <Grid item xs={5} sx={{ minWidth: "350px" }}>
+      <Grid item xs={5} sx={{ minWidth: "400px" }}>
         {!mesFlag ? (
           <DashCard color={sent ? "#1976d2" : "white"}>
             <Typography

@@ -3,6 +3,7 @@ import React from "react";
 import DashCard from "./DashCard";
 import MessageSensor from "./MessageSensor";
 import { Message } from "../../typings";
+import { useState } from "react";
 
 export default function MessageCard({
   message,
@@ -14,11 +15,12 @@ export default function MessageCard({
   sent: boolean;
   flagged?: boolean;
 }) {
+  const [mesFlag, setMesFlag] = useState(flagged);
   return (
     <Grid container alignItems={"end"}>
-      {sent && <Grid item xs={8}></Grid>}
-      <Grid item xs={4}>
-        {!flagged ? (
+      {sent && <Grid item sx={{ flex: "1 1 auto" }}></Grid>}
+      <Grid item xs={5} sx={{ minWidth: "350px" }}>
+        {!mesFlag ? (
           <DashCard color={sent ? "#1976d2" : "white"}>
             <Typography
               variant="body2"
@@ -28,7 +30,7 @@ export default function MessageCard({
             </Typography>
           </DashCard>
         ) : (
-          <MessageSensor message={message} />
+          <MessageSensor message={message} setFlag={setMesFlag} />
         )}
       </Grid>
     </Grid>

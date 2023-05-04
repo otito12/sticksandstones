@@ -59,11 +59,13 @@ export default function DashAccordion({
   message,
   minWidth,
   maxWidth,
+  setFlag,
   ...props
 }: {
   message?: string;
   minWidth?: string;
   maxWidth?: string;
+  setFlag: Function;
 }) {
   const [open, setOpen] = React.useState(false);
   const [display, setDisplay] = React.useState("block");
@@ -83,7 +85,9 @@ export default function DashAccordion({
     setDisplay("none");
   };
 
-  const handleAppropriate = () => {};
+  const handleAppropriate = () => {
+    setFlag(false);
+  };
 
   return (
     <Grid

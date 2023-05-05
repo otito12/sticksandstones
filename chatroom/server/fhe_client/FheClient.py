@@ -98,19 +98,20 @@ class FheClient():
                         msg.topic(), msg.value()))
                     
                     message_id = msg.value().decode("utf-8")
-                    # when message arrives go to AWS to get pred file
-                    encrypted_prediciton = self.aws_s3.get_object(Bucket=self.aws_config['aws_bucket'],
-                                                                Key=message_id)['Body'].read()
+                    if self.active_messages.get(message_id,None):
+                        # when message arrives go to AWS to get pred file
+                        encrypted_prediciton = self.aws_s3.get_object(Bucket=self.aws_config['aws_bucket'],
+                                                                    Key=message_id)['Body'].read()
 
-                    # decyrpt
-                    decrypted_prediction = self.fhemodel_client.deserialize_decrypt_dequantize(encrypted_prediciton)[0]
-                    message = self.active_messages.pop(message_id)
-                    if (np.argmax(decrypted_prediction)):
-                        message["flagged"]=True
-                    print(message)
+                        # decyrpt
+                        decrypted_prediction = self.fhemodel_client.deserialize_decrypt_dequantize(encrypted_prediciton)[0]
+                        message = self.active_messages.pop(message_id)
+                        if (np.argmax(decrypted_prediction)):
+                            message["flagged"]=True
+                        print(message)
 
-                    # the final fucking mini boss
-                    # socket.send('recieve-message', message)
+                        # the final fucking mini boss
+                        # socket.send('recieve-message', message)
 
         except KeyboardInterrupt:
             pass
@@ -138,7 +139,6 @@ class FheClient():
         print("Encryption, AWS and Kafka Producton time:",t1-t0)
         print("Size of Encreypted text: ",sys.getsizeof(encrypted_input))
         
-
     def restful_predict(self,message):
         clear_input = np.array(self.count_vector.transform([message]).todense())
         encrypted_input = self.fhemodel_client.quantize_encrypt_serialize(clear_input)

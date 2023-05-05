@@ -26,8 +26,8 @@ export default function ChatRoom() {
     useState<Socket<DefaultEventsMap, DefaultEventsMap>>();
 
   useEffect(() => {
-    // setSocket(io("http://localhost:3500"));
-    setSocket(io("http://127.0.0.1:5001"));
+    setSocket(io("http://localhost:3500"));
+    // setSocket(io("http://127.0.0.1:5001"));
   }, []);
 
   socket?.on("connect", () => {

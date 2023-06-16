@@ -77,8 +77,8 @@ const connectConsumer = async () => {
 };
 
 // Connect to the confluent broker
-connectProducer();
-connectConsumer();
+// connectProducer();
+// connectConsumer();
 
 const produceMessage = async (message) => {
   await producer.send({
@@ -90,7 +90,9 @@ const produceMessage = async (message) => {
 
 io.on("connection", (socket) => {
   socket.on("send-message", (message) => {
-    produceMessage(JSON.stringify(message));
+    // produceMessage(JSON.stringify(message));
+    message = { ...message, flagged: true };
+    socket.broadcast.emit("recieve-message", message);
     console.log(message);
   });
 });

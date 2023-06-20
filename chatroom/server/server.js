@@ -12,9 +12,9 @@ const kafka_producer = new Kafka({
   logLevel: 2,
   sasl: {
     mechanism: "plain", // scram-sha-256 or scram-sha-512
-    username: "OKT6NPKMHWF2Q35E",
+    username: "USER_NAME",
     password:
-      "PX51AyMadxUMHRkM2CT+POD0n7OW1k2SXSOYpz1kXMoqDadr5Jr/oHH0YFcP2mnb",
+      "PASSWORD",
   },
 });
 
@@ -26,9 +26,9 @@ const kafka_consumer = new Kafka({
   groupId: "ss-consumer",
   sasl: {
     mechanism: "plain", // scram-sha-256 or scram-sha-512
-    username: "7ELFNKFFNBRYAGCD",
+    username: "USER_NAME",
     password:
-      "zXCGOM9BKXWeCQoioRDYzx6daKPo3vFh1PoK3ZHc0wYdBluUZEPnKMm/3bijwmP5",
+      "PASSWORD",
   },
 });
 

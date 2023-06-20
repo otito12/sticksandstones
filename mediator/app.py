@@ -17,8 +17,8 @@ from botocore.client import Config
 from io import BytesIO
 
 aws_config={
-    "aws_key": 'AKIA5WXDWS4P7KLXQUUD',
-    "aws_secret": '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',
+    "aws_key": 'USERNAME',
+    "aws_secret": 'PASSWORD',
     "aws_bucket": 'sticksnstones',
 }
 
@@ -29,8 +29,8 @@ kafka_config={
     "group.id":"python_example_group_1",
     "message.max.bytes":"1000000000",
     "receive.message.max.bytes":"2147483647",
-    "sasl.username": "4UWMU4B6UGYYOIRH",
-    "sasl.password": "r9tsYZipOZ6r8GFM78GtrW2cg4ybXTsGeeD0auDbh6Dp3YZxGY2CvlMZMIkiWar+",
+    "sasl.username": "USERNAME",
+    "sasl.password": "PASSWORD",
 }
 
 # AWS client
